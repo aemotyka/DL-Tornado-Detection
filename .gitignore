@@ -10,7 +10,7 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Local and generated data
-data/
+/data/
 artifacts/
 *.nc
 *.npz
@@ -29,3 +29,6 @@ wandb/
 
 # macOS
 .DS_Store
+*.egg-info/
+build/
+dist/
