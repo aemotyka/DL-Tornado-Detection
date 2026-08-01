@@ -252,28 +252,28 @@ def test_build_and_validate_synthetic_archive(
     assert train_tor["has_mixed_frame_labels"]
     assert validation.event_split_overlap.empty
 
-artifacts = write_manifest_artifacts(
-    result,
-    validation,
-    tmp_path / "valid-artifacts",
-)
+    artifacts = write_manifest_artifacts(
+        result,
+        validation,
+        tmp_path / "valid-artifacts",
+    )
 
-assert "_SUCCESS.json" in artifacts
-assert "_INVALID.json" not in artifacts
+    assert "_SUCCESS.json" in artifacts
+    assert "_INVALID.json" not in artifacts
 
-success_payload = json.loads(
-    Path(
-        artifacts["_SUCCESS.json"]
-    ).read_text()
-)
+    success_payload = json.loads(
+        Path(
+            artifacts["_SUCCESS.json"]
+        ).read_text()
+    )
 
-assert success_payload["status"] == "valid"
-assert (
-    success_payload[
-        "all_required_validations_passed"
-    ]
-    is True
-)
+    assert success_payload["status"] == "valid"
+    assert (
+        success_payload[
+            "all_required_validations_passed"
+        ]
+        is True
+    )
 
 
 def test_write_invalid_audit_artifacts(
