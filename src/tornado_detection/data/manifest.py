@@ -1343,15 +1343,46 @@ def write_manifest_artifacts(
     output_directory: str | Path,
     *,
     overwrite: bool = False,
+    allow_invalid: bool = False,
 ) -> dict[str, str]:
-    """Write validated manifests with a success marker written last."""
+    """Write manifest artifacts with a terminal status marker.
 
-    validation.assert_valid()
+    Fully valid manifests receive ``_SUCCESS.json``.
+
+    When ``allow_invalid`` is true, manifests that fail required
+    validation may still be written for auditing. Those artifacts
+    receive ``_INVALID.json`` and never ``_SUCCESS.json``.
+    """
+
+    all_required_passed = (
+        validation.all_required_passed
+    )
+
+    if not all_required_passed and not allow_invalid:
+        validation.assert_valid()
 
     output_directory = Path(output_directory)
-    output_directory.mkdir(parents=True, exist_ok=True)
+    output_directory.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
-    success_path = output_directory / "_SUCCESS.json"
+    status = (
+        "valid"
+        if all_required_passed
+        else "invalid"
+    )
+    marker_name = (
+        "_SUCCESS.json"
+        if all_required_passed
+        else "_INVALID.json"
+    )
+    marker_path = output_directory / marker_name
+
+    terminal_marker_names = [
+        "_SUCCESS.json",
+        "_INVALID.json",
+    ]
 
     artifact_names = [
         "file_manifest.parquet",
@@ -1367,91 +1398,165 @@ def write_manifest_artifacts(
 
     existing = [
         output_directory / name
-        for name in [*artifact_names, "_SUCCESS.json"]
+        for name in [
+            *artifact_names,
+            *terminal_marker_names,
+        ]
         if (output_directory / name).exists()
     ]
 
     if existing and not overwrite:
         raise FileExistsError(
             "Manifest output already exists: "
-            + ", ".join(str(path) for path in existing)
+            + ", ".join(
+                str(path)
+                for path in existing
+            )
         )
 
-    success_path.unlink(missing_ok=True)
+    for terminal_marker_name in terminal_marker_names:
+        (
+            output_directory
+            / terminal_marker_name
+        ).unlink(missing_ok=True)
+
+    failed_required = validation.checks.loc[
+        validation.checks["required"]
+        & ~validation.checks["passed"]
+    ]
+
+    failed_required_checks = [
+        {
+            "check": str(row.check),
+            "observed": _json_safe(row.observed),
+            "expected": _json_safe(row.expected),
+            "detail": str(row.detail or ""),
+        }
+        for row in failed_required.itertuples(
+            index=False
+        )
+    ]
 
     with tempfile.TemporaryDirectory(
         prefix="tornet-manifest-output-"
     ) as staging_directory:
-        staging_directory = Path(staging_directory)
+        staging_directory = Path(
+            staging_directory
+        )
 
         result.file_manifest.to_parquet(
-            staging_directory / "file_manifest.parquet",
+            staging_directory
+            / "file_manifest.parquet",
             index=False,
         )
         result.frame_manifest.to_parquet(
-            staging_directory / "frame_manifest.parquet",
+            staging_directory
+            / "frame_manifest.parquet",
             index=False,
         )
         result.schema_summary.to_csv(
-            staging_directory / "schema_summary.csv",
+            staging_directory
+            / "schema_summary.csv",
             index=False,
         )
         result.errors.to_csv(
-            staging_directory / "build_errors.csv",
+            staging_directory
+            / "build_errors.csv",
             index=False,
         )
         validation.checks.to_csv(
-            staging_directory / "validation_checks.csv",
+            staging_directory
+            / "validation_checks.csv",
             index=False,
         )
         validation.event_split_overlap.to_csv(
-            staging_directory / "event_split_overlap.csv",
+            staging_directory
+            / "event_split_overlap.csv",
             index=False,
         )
         validation.episode_split_overlap.to_csv(
-            staging_directory / "episode_split_overlap.csv",
+            staging_directory
+            / "episode_split_overlap.csv",
             index=False,
         )
         validation.category_frame_summary.to_csv(
-            staging_directory / "category_frame_summary.csv",
+            staging_directory
+            / "category_frame_summary.csv",
             index=False,
         )
 
         summary = {
-            "manifest_schema_version": MANIFEST_SCHEMA_VERSION,
+            "manifest_schema_version": (
+                MANIFEST_SCHEMA_VERSION
+            ),
             "built_at_utc": datetime.now(
                 timezone.utc
             ).isoformat(),
+            "artifact_status": status,
             "archive_path": result.archive_path,
-            "archive_size_bytes": result.archive_size_bytes,
+            "archive_size_bytes": (
+                result.archive_size_bytes
+            ),
             "year": result.year,
-            "netcdf_member_count": result.netcdf_member_count,
-            "file_row_count": len(result.file_manifest),
-            "frame_row_count": len(result.frame_manifest),
-            "schema_variant_count": len(result.schema_summary),
-            "build_error_count": len(result.errors),
+            "netcdf_member_count": (
+                result.netcdf_member_count
+            ),
+            "file_row_count": len(
+                result.file_manifest
+            ),
+            "frame_row_count": len(
+                result.frame_manifest
+            ),
+            "schema_variant_count": len(
+                result.schema_summary
+            ),
+            "build_error_count": len(
+                result.errors
+            ),
             "all_required_validations_passed": (
-                validation.all_required_passed
+                all_required_passed
+            ),
+            "failed_required_validation_count": (
+                len(failed_required_checks)
+            ),
+            "failed_required_checks": (
+                failed_required_checks
             ),
         }
 
         (
-            staging_directory / "manifest_summary.json"
+            staging_directory
+            / "manifest_summary.json"
         ).write_text(
-            json.dumps(summary, indent=2, sort_keys=True)
+            json.dumps(
+                summary,
+                indent=2,
+                sort_keys=True,
+            )
             + "\n"
         )
 
         artifact_hashes: dict[str, str] = {}
 
         for artifact_name in artifact_names:
-            source = staging_directory / artifact_name
-            destination = output_directory / artifact_name
+            source = (
+                staging_directory
+                / artifact_name
+            )
+            destination = (
+                output_directory
+                / artifact_name
+            )
 
-            shutil.copy2(source, destination)
+            shutil.copy2(
+                source,
+                destination,
+            )
 
             source_hash = _sha256_path(source)
-            destination_hash = _sha256_path(destination)
+            destination_hash = _sha256_path(
+                destination
+            )
 
             if source_hash != destination_hash:
                 raise IOError(
@@ -1459,19 +1564,30 @@ def write_manifest_artifacts(
                     f"{artifact_name}"
                 )
 
-            artifact_hashes[artifact_name] = destination_hash
+            artifact_hashes[
+                artifact_name
+            ] = destination_hash
 
-    success_payload = {
-        "manifest_schema_version": MANIFEST_SCHEMA_VERSION,
+    marker_payload = {
+        "manifest_schema_version": (
+            MANIFEST_SCHEMA_VERSION
+        ),
         "completed_at_utc": datetime.now(
             timezone.utc
         ).isoformat(),
+        "status": status,
+        "all_required_validations_passed": (
+            all_required_passed
+        ),
+        "failed_required_checks": (
+            failed_required_checks
+        ),
         "artifact_sha256": artifact_hashes,
     }
 
-    success_path.write_text(
+    marker_path.write_text(
         json.dumps(
-            success_payload,
+            marker_payload,
             indent=2,
             sort_keys=True,
         )
@@ -1480,5 +1596,8 @@ def write_manifest_artifacts(
 
     return {
         name: str(output_directory / name)
-        for name in [*artifact_names, "_SUCCESS.json"]
+        for name in [
+            *artifact_names,
+            marker_name,
+        ]
     }

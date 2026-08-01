@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import json
 import tarfile
 from pathlib import Path
 
 import numpy as np
+import pytest
 import xarray as xr
 
 from tornado_detection.data.manifest import (
     build_archive_manifests,
     parse_tornet_member,
     validate_manifests,
+    write_manifest_artifacts,
 )
 
 
@@ -248,3 +251,164 @@ def test_build_and_validate_synthetic_archive(
     assert train_tor["positive_frame_count"] == 2
     assert train_tor["has_mixed_frame_labels"]
     assert validation.event_split_overlap.empty
+
+artifacts = write_manifest_artifacts(
+    result,
+    validation,
+    tmp_path / "valid-artifacts",
+)
+
+assert "_SUCCESS.json" in artifacts
+assert "_INVALID.json" not in artifacts
+
+success_payload = json.loads(
+    Path(
+        artifacts["_SUCCESS.json"]
+    ).read_text()
+)
+
+assert success_payload["status"] == "valid"
+assert (
+    success_payload[
+        "all_required_validations_passed"
+    ]
+    is True
+)
+
+
+def test_write_invalid_audit_artifacts(
+    tmp_path: Path,
+) -> None:
+    archive_path = (
+        tmp_path / "tornet_2014.tar.gz"
+    )
+
+    with tarfile.open(
+        archive_path,
+        mode="w:gz",
+    ) as archive:
+        _write_member(
+            archive,
+            tmp_path,
+            archive_member=(
+                "train/2014/"
+                "TOR_140429_234928_KRAX_505771_A8.nc"
+            ),
+            dataset=_synthetic_dataset(
+                category="TOR",
+                event_id="505771",
+                episode_id="83781",
+                scit_id="A8",
+                frame_labels=[0, 0, 0, 1],
+            ),
+        )
+
+        _write_member(
+            archive,
+            tmp_path,
+            archive_member=(
+                "test/2014/"
+                "WRN_140430_004059_KRAX_1073839n_L0.nc"
+            ),
+            dataset=_synthetic_dataset(
+                category="WRN",
+                event_id="505771",
+                episode_id="83781",
+                scit_id="L0",
+                frame_labels=[0, 0, 0, 0],
+            ),
+        )
+
+    result = build_archive_manifests(
+        archive_path,
+        expected_year=2014,
+        progress=None,
+    )
+
+    validation = validate_manifests(
+        result,
+        expected_file_count=2,
+        expected_frame_count=8,
+        expected_frames_per_file=4,
+        expected_dimensions={
+            "time": 4,
+            "sweep": 2,
+            "azimuth": 2,
+            "range": 3,
+        },
+    )
+
+    assert not validation.all_required_passed
+    assert len(
+        validation.event_split_overlap
+    ) == 1
+
+    with pytest.raises(
+        AssertionError,
+        match=(
+            "event_groups_do_not_cross_"
+            "official_splits"
+        ),
+    ):
+        write_manifest_artifacts(
+            result,
+            validation,
+            tmp_path / "strict-invalid",
+        )
+
+    artifacts = write_manifest_artifacts(
+        result,
+        validation,
+        tmp_path / "audit-invalid",
+        allow_invalid=True,
+    )
+
+    assert "_INVALID.json" in artifacts
+    assert "_SUCCESS.json" not in artifacts
+
+    invalid_payload = json.loads(
+        Path(
+            artifacts["_INVALID.json"]
+        ).read_text()
+    )
+
+    assert invalid_payload["status"] == "invalid"
+    assert (
+        invalid_payload[
+            "all_required_validations_passed"
+        ]
+        is False
+    )
+    assert invalid_payload[
+        "failed_required_checks"
+    ] == [
+        {
+            "check": (
+                "event_groups_do_not_cross_"
+                "official_splits"
+            ),
+            "observed": 1,
+            "expected": 0,
+            "detail": "",
+        }
+    ]
+
+    summary_payload = json.loads(
+        (
+            tmp_path
+            / "audit-invalid"
+            / "manifest_summary.json"
+        ).read_text()
+    )
+
+    assert (
+        summary_payload["artifact_status"]
+        == "invalid"
+    )
+    assert (
+        summary_payload[
+            "failed_required_validation_count"
+        ]
+        == 1
+    )
+
