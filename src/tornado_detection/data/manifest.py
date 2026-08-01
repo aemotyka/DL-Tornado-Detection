@@ -1428,8 +1428,12 @@ def write_manifest_artifacts(
     failed_required_checks = [
         {
             "check": str(row.check),
-            "observed": _json_safe(row.observed),
-            "expected": _json_safe(row.expected),
+            "observed": json.loads(
+                str(row.observed)
+            ),
+            "expected": json.loads(
+                str(row.expected)
+            ),
             "detail": str(row.detail or ""),
         }
         for row in failed_required.itertuples(
