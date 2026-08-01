@@ -16,6 +16,13 @@ from tornado_detection.data.manifest import (
 )
 
 
+
+from tornado_detection.data.modeling import (
+    ModelingExclusion,
+    build_modeling_manifest,
+    write_modeling_manifest_artifacts,
+)
+
 def test_parse_tornet_member() -> None:
     parsed = parse_tornet_member(
         "train/2013/NUL_131101_063025_KRLX_476088s_F5.nc",
@@ -411,4 +418,198 @@ def test_write_invalid_audit_artifacts(
         ]
         == 1
     )
+
+
+def test_build_and_write_modeling_manifest(
+    tmp_path: Path,
+) -> None:
+    archive_path = (
+        tmp_path / "tornet_2014.tar.gz"
+    )
+
+    train_member = (
+        "train/2014/"
+        "TOR_140429_234928_KRAX_505771_A8.nc"
+    )
+    test_member = (
+        "test/2014/"
+        "WRN_140430_004059_KRAX_1073839n_L0.nc"
+    )
+
+    with tarfile.open(
+        archive_path,
+        mode="w:gz",
+    ) as archive:
+        _write_member(
+            archive,
+            tmp_path,
+            archive_member=train_member,
+            dataset=_synthetic_dataset(
+                category="TOR",
+                event_id="505771",
+                episode_id="83781",
+                scit_id="A8",
+                frame_labels=[0, 0, 0, 1],
+            ),
+        )
+
+        _write_member(
+            archive,
+            tmp_path,
+            archive_member=test_member,
+            dataset=_synthetic_dataset(
+                category="WRN",
+                event_id="505771",
+                episode_id="83781",
+                scit_id="L0",
+                frame_labels=[0, 0, 0, 0],
+            ),
+        )
+
+    raw_result = build_archive_manifests(
+        archive_path,
+        expected_year=2014,
+        progress=None,
+    )
+
+    raw_validation = validate_manifests(
+        raw_result,
+        expected_file_count=2,
+        expected_frame_count=8,
+        expected_frames_per_file=4,
+        expected_dimensions={
+            "time": 4,
+            "sweep": 2,
+            "azimuth": 2,
+            "range": 3,
+        },
+    )
+
+    assert not raw_validation.all_required_passed
+
+    raw_directory = tmp_path / "raw-audit"
+
+    write_manifest_artifacts(
+        raw_result,
+        raw_validation,
+        raw_directory,
+        allow_invalid=True,
+    )
+
+    modeling_build = build_modeling_manifest(
+        raw_directory,
+        exclusions=[
+            ModelingExclusion(
+                archive_member=train_member,
+                expected_event_id="505771",
+                expected_episode_id="83781",
+                reason=(
+                    "Official train/test event leakage"
+                ),
+                resolution=(
+                    "Preserve official test files and "
+                    "exclude the overlapping training member"
+                ),
+            )
+        ],
+        expected_dimensions={
+            "time": 4,
+            "sweep": 2,
+            "azimuth": 2,
+            "range": 3,
+        },
+    )
+
+    assert (
+        modeling_build.validation
+        .all_required_passed
+    )
+    assert (
+        modeling_build.validation
+        .event_split_overlap.empty
+    )
+    assert len(
+        modeling_build.manifest.file_manifest
+    ) == 1
+    assert len(
+        modeling_build.manifest.frame_manifest
+    ) == 4
+
+    remaining_file = (
+        modeling_build.manifest.file_manifest
+        .iloc[0]
+    )
+
+    assert (
+        remaining_file["archive_member"]
+        == test_member
+    )
+    assert remaining_file["split"] == "test"
+
+    ledger_row = (
+        modeling_build.exclusion_ledger
+        .iloc[0]
+    )
+
+    assert (
+        ledger_row["archive_member"]
+        == train_member
+    )
+    assert (
+        ledger_row[
+            "removed_frame_count"
+        ]
+        == 4
+    )
+    assert (
+        ledger_row[
+            "removed_positive_frame_count"
+        ]
+        == 1
+    )
+
+    output_directory = (
+        tmp_path / "modeling-manifest"
+    )
+
+    artifacts = (
+        write_modeling_manifest_artifacts(
+            modeling_build,
+            output_directory,
+        )
+    )
+
+    assert "_SUCCESS.json" in artifacts
+    assert "_INVALID.json" not in artifacts
+    assert "exclusion_ledger.csv" in artifacts
+    assert "modeling_summary.json" in artifacts
+
+    summary = json.loads(
+        (
+            output_directory
+            / "modeling_summary.json"
+        ).read_text()
+    )
+
+    assert summary[
+        "modeling_file_row_count"
+    ] == 1
+    assert summary[
+        "modeling_frame_row_count"
+    ] == 4
+    assert summary[
+        "excluded_file_count"
+    ] == 1
+    assert summary[
+        "excluded_frame_count"
+    ] == 4
+    assert summary[
+        "excluded_positive_frame_count"
+    ] == 1
+    assert summary[
+        "event_split_overlap_count"
+    ] == 0
+    assert summary[
+        "all_required_validations_passed"
+    ] is True
 
