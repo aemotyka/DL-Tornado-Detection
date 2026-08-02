@@ -24,6 +24,11 @@ MANIFEST_SCHEMA_VERSION = "1.0.0"
 EXPECTED_SPLITS = frozenset({"train", "test"})
 EXPECTED_CATEGORIES = frozenset({"NUL", "WRN", "TOR"})
 
+# TorNet uses -1 when an event or episode identifier is not
+# applicable. These values remain preserved in raw manifests but
+# must not combine unrelated files into one split-overlap group.
+NON_GROUPING_IDENTIFIERS = frozenset({"-1"})
+
 PRIMARY_RADAR_VARIABLES = (
     "DBZ",
     "KDP",
@@ -877,9 +882,15 @@ def _split_overlap(
     if file_manifest.empty or key not in file_manifest:
         return pd.DataFrame(columns=columns)
 
+    normalized_identifiers = file_manifest[
+        key
+    ].map(_normalize_identifier)
+
     valid = file_manifest.loc[
-        file_manifest[key].notna()
-        & file_manifest[key].astype(str).str.len().gt(0)
+        normalized_identifiers.notna()
+        & ~normalized_identifiers.isin(
+            NON_GROUPING_IDENTIFIERS
+        )
     ]
 
     rows: list[dict[str, Any]] = []

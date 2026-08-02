@@ -613,3 +613,85 @@ def test_build_and_write_modeling_manifest(
         "all_required_validations_passed"
     ] is True
 
+
+def test_missing_identifier_sentinel_does_not_create_overlap(
+    tmp_path: Path,
+) -> None:
+    archive_path = (
+        tmp_path / "tornet_2017.tar.gz"
+    )
+
+    with tarfile.open(
+        archive_path,
+        mode="w:gz",
+    ) as archive:
+        _write_member(
+            archive,
+            tmp_path,
+            archive_member=(
+                "train/2017/"
+                "WRN_171008_065120_KEVX_1079855n_Y8.nc"
+            ),
+            dataset=_synthetic_dataset(
+                category="WRN",
+                event_id="-1",
+                episode_id="-1",
+                scit_id="Y8",
+                frame_labels=[0, 0, 0, 0],
+            ),
+        )
+
+        _write_member(
+            archive,
+            tmp_path,
+            archive_member=(
+                "test/2017/"
+                "WRN_170118_063319_KHGX_1077919n_P0.nc"
+            ),
+            dataset=_synthetic_dataset(
+                category="WRN",
+                event_id="-1",
+                episode_id="-1",
+                scit_id="P0",
+                frame_labels=[0, 0, 0, 0],
+            ),
+        )
+
+    result = build_archive_manifests(
+        archive_path,
+        expected_year=2017,
+        progress=None,
+    )
+
+    validation = validate_manifests(
+        result,
+        expected_file_count=2,
+        expected_frame_count=8,
+        expected_frames_per_file=4,
+        expected_dimensions={
+            "time": 4,
+            "sweep": 2,
+            "azimuth": 2,
+            "range": 3,
+        },
+    )
+
+    assert validation.all_required_passed
+    assert validation.event_split_overlap.empty
+    assert validation.episode_split_overlap.empty
+
+    assert set(
+        result.file_manifest[
+            "event_group_id"
+        ].astype(str)
+    ) == {"-1"}
+
+    assert set(
+        result.file_manifest[
+            "episode_id"
+        ].astype(str)
+    ) == {"-1"}
+
+    assert len(result.file_manifest) == 2
+    assert len(result.frame_manifest) == 8
+
