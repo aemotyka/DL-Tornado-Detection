@@ -7,7 +7,9 @@ import pytest
 import xarray as xr
 
 from tornado_detection.data.tensor import (
+    build_file_tensor,
     build_frame_tensor,
+    read_netcdf_file,
     read_netcdf_frame,
 )
 
@@ -138,6 +140,53 @@ def test_read_netcdf_frame(
     )
     assert result.values.dtype == np.float32
     assert result.label == 1
+
+
+def test_build_file_tensor() -> None:
+    dataset = _dataset()
+
+    result = build_file_tensor(dataset)
+
+    assert result.values.shape == (
+        4,
+        120,
+        240,
+        4,
+    )
+    assert result.values.dtype == np.float32
+    assert result.labels.dtype == np.uint8
+    np.testing.assert_array_equal(
+        result.labels,
+        np.asarray([0, 0, 1, 1], dtype=np.uint8),
+    )
+    np.testing.assert_array_equal(
+        result.values[3],
+        build_frame_tensor(dataset, 3).values,
+    )
+
+
+def test_read_netcdf_file(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "sample.nc"
+
+    _dataset().to_netcdf(
+        path,
+        engine="netcdf4",
+    )
+
+    result = read_netcdf_file(path)
+
+    assert result.values.shape == (
+        4,
+        120,
+        240,
+        4,
+    )
+    np.testing.assert_array_equal(
+        result.labels,
+        np.asarray([0, 0, 1, 1], dtype=np.uint8),
+    )
 
 
 def test_rejects_wrong_dimension_order() -> None:

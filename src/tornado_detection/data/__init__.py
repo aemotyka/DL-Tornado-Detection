@@ -39,8 +39,11 @@ from tornado_detection.data.tensor import (
     EXPECTED_FRAME_SHAPE,
     EXPECTED_RADAR_DIMENSIONS,
     EXPECTED_SWEEP_COUNT,
+    FileTensor,
     FrameTensor,
+    build_file_tensor,
     build_frame_tensor,
+    read_netcdf_file,
     read_netcdf_frame,
 )
 
@@ -49,8 +52,11 @@ __all__ = [
     "EXPECTED_FRAME_SHAPE",
     "EXPECTED_RADAR_DIMENSIONS",
     "EXPECTED_SWEEP_COUNT",
+    "FileTensor",
     "FrameTensor",
+    "build_file_tensor",
     "build_frame_tensor",
+    "read_netcdf_file",
     "read_netcdf_frame",
     "summarize_model_splits",
     "build_validation_group_keys",

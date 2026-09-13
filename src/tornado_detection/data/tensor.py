@@ -37,6 +37,15 @@ class FrameTensor:
     variables: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class FileTensor:
+    """Every frame from one TorNet file, decoded in one open."""
+
+    values: np.ndarray
+    labels: np.ndarray
+    variables: tuple[str, ...]
+
+
 def _validate_frame_index(
     dataset: xr.Dataset,
     frame_index: int,
@@ -205,6 +214,52 @@ def build_frame_tensor(
     )
 
 
+def build_file_tensor(
+    dataset: xr.Dataset,
+    *,
+    variables: Sequence[str] = (
+        DEFAULT_RADAR_VARIABLES
+    ),
+) -> FileTensor:
+    """Construct tensors for every time frame in an open dataset."""
+
+    if "time" not in dataset.sizes:
+        raise AssertionError(
+            "Dataset does not contain a time dimension"
+        )
+
+    frame_count = int(dataset.sizes["time"])
+
+    if frame_count < 1:
+        raise AssertionError(
+            "Dataset contains no time frames"
+        )
+
+    frames = [
+        build_frame_tensor(
+            dataset,
+            frame_index,
+            variables=variables,
+        )
+        for frame_index in range(frame_count)
+    ]
+
+    values = np.stack(
+        [frame.values for frame in frames],
+        axis=0,
+    ).astype(np.float32, copy=False)
+    labels = np.asarray(
+        [frame.label for frame in frames],
+        dtype=np.uint8,
+    )
+
+    return FileTensor(
+        values=values,
+        labels=labels,
+        variables=frames[0].variables,
+    )
+
+
 def read_netcdf_frame(
     path: str | Path,
     frame_index: int,
@@ -238,5 +293,40 @@ def read_netcdf_frame(
         values=values,
         label=result.label,
         frame_index=result.frame_index,
+        variables=result.variables,
+    )
+
+
+def read_netcdf_file(
+    path: str | Path,
+    *,
+    variables: Sequence[str] = (
+        DEFAULT_RADAR_VARIABLES
+    ),
+) -> FileTensor:
+    """Read every frame from one extracted TorNet NetCDF file."""
+
+    path = Path(path)
+
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"NetCDF file does not exist: {path}"
+        )
+
+    with xr.open_dataset(
+        path,
+        engine="netcdf4",
+    ) as dataset:
+        result = build_file_tensor(
+            dataset,
+            variables=variables,
+        )
+
+        values = result.values.copy()
+        labels = result.labels.copy()
+
+    return FileTensor(
+        values=values,
+        labels=labels,
         variables=result.variables,
     )
