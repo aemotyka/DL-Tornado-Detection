@@ -156,14 +156,13 @@ def _validate_source_selection(
 
     if not actual.equals(expected):
         raise AssertionError(
-            "Canonical manifest-source selection differs "
-            "from the required year mapping.
-"
-            f"Expected:
-{expected.to_string(index=False)}
-"
-            f"Actual:
-{actual.to_string(index=False)}"
+            (
+                "Canonical manifest-source selection differs "
+                "from the required year mapping. Expected: "
+                f"{expected.to_dict(orient='records')}; "
+                "actual: "
+                f"{actual.to_dict(orient='records')}"
+            )
         )
 
 
