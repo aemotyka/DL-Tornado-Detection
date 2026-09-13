@@ -524,3 +524,321 @@ def summarize_canonical_frame_index(
         "by_category_split": by_category_split,
         "training_groups": grouping_summary,
     }
+
+
+def build_validation_group_keys(
+    frame_index: pd.DataFrame,
+) -> pd.Series:
+    """Build stable event groups with file fallback for sentinels."""
+
+    _validate_columns(frame_index)
+
+    if frame_index["file_id"].isna().any():
+        raise AssertionError(
+            "Cannot construct validation groups with null file IDs"
+        )
+
+    event_groups = _normalize_identifier_series(
+        frame_index["event_group_id"]
+    )
+    file_ids = frame_index["file_id"].astype(
+        "string"
+    ).str.strip()
+
+    real_event_mask = (
+        event_groups.notna()
+        & ~event_groups.isin(
+            NON_GROUPING_IDENTIFIERS
+        )
+    )
+
+    group_keys = pd.Series(
+        index=frame_index.index,
+        dtype="string",
+        name="validation_group_key",
+    )
+
+    group_keys.loc[real_event_mask] = (
+        "event:"
+        + event_groups.loc[real_event_mask]
+    )
+
+    group_keys.loc[~real_event_mask] = (
+        "file:"
+        + file_ids.loc[~real_event_mask]
+    )
+
+    if group_keys.isna().any():
+        raise AssertionError(
+            "Validation group construction produced null keys"
+        )
+
+    return group_keys
+
+
+def _validation_hash_score(
+    group_key: str,
+    *,
+    seed: int,
+) -> float:
+    import hashlib
+
+    payload = (
+        f"{seed}\n{group_key}"
+    ).encode("utf-8")
+
+    digest = hashlib.sha256(payload).digest()
+    integer = int.from_bytes(
+        digest[:8],
+        byteorder="big",
+        signed=False,
+    )
+
+    return integer / float(2 ** 64)
+
+
+def assign_model_splits(
+    frame_index: pd.DataFrame,
+    *,
+    validation_fraction: float = 0.20,
+    seed: int = 20260913,
+    expected_frame_count: int = (
+        EXPECTED_CANONICAL_FRAME_COUNT
+    ),
+) -> pd.DataFrame:
+    """Assign deterministic group-disjoint train/validation/test."""
+
+    if not 0.0 < validation_fraction < 1.0:
+        raise ValueError(
+            "validation_fraction must be strictly "
+            "between 0 and 1"
+        )
+
+    validate_canonical_frame_index(
+        frame_index,
+        expected_frame_count=expected_frame_count,
+    )
+
+    assigned = frame_index.copy()
+    assigned["validation_group_key"] = (
+        build_validation_group_keys(assigned)
+    )
+
+    official_train_mask = assigned[
+        "split"
+    ].eq("train")
+    official_test_mask = assigned[
+        "split"
+    ].eq("test")
+
+    train_group_keys = (
+        assigned.loc[
+            official_train_mask,
+            "validation_group_key",
+        ]
+        .drop_duplicates()
+        .sort_values()
+    )
+
+    group_scores = {
+        group_key: _validation_hash_score(
+            str(group_key),
+            seed=seed,
+        )
+        for group_key in train_group_keys
+    }
+
+    validation_groups = {
+        group_key
+        for group_key, score in group_scores.items()
+        if score < validation_fraction
+    }
+
+    if not validation_groups:
+        raise AssertionError(
+            "Validation assignment selected no groups"
+        )
+
+    validation_mask = (
+        official_train_mask
+        & assigned[
+            "validation_group_key"
+        ].isin(validation_groups)
+    )
+
+    assigned["model_split"] = "train"
+    assigned.loc[
+        validation_mask,
+        "model_split",
+    ] = "validation"
+    assigned.loc[
+        official_test_mask,
+        "model_split",
+    ] = "test"
+
+    assigned["validation_fraction"] = float(
+        validation_fraction
+    )
+    assigned["validation_seed"] = int(seed)
+
+    if not (
+        assigned.loc[
+            official_test_mask,
+            "model_split",
+        ]
+        .eq("test")
+        .all()
+    ):
+        raise AssertionError(
+            "Official test rows were reassigned"
+        )
+
+    if assigned.loc[
+        official_train_mask,
+        "model_split",
+    ].eq("test").any():
+        raise AssertionError(
+            "Official training rows were assigned to test"
+        )
+
+    internal = assigned.loc[
+        assigned["model_split"].isin(
+            [
+                "train",
+                "validation",
+            ]
+        ),
+        [
+            "validation_group_key",
+            "model_split",
+        ],
+    ].drop_duplicates()
+
+    crossing_groups = (
+        internal.groupby(
+            "validation_group_key",
+            sort=True,
+        )["model_split"]
+        .nunique()
+    )
+
+    crossing_groups = crossing_groups.loc[
+        crossing_groups > 1
+    ]
+
+    if not crossing_groups.empty:
+        raise AssertionError(
+            "Validation groups cross internal train/"
+            "validation splits"
+        )
+
+    actual_model_splits = set(
+        assigned["model_split"].unique()
+    )
+
+    if actual_model_splits != {
+        "train",
+        "validation",
+        "test",
+    }:
+        raise AssertionError(
+            "Unexpected model splits: "
+            f"{sorted(actual_model_splits)}"
+        )
+
+    for split_name in (
+        "train",
+        "validation",
+        "test",
+    ):
+        labels = set(
+            assigned.loc[
+                assigned["model_split"].eq(
+                    split_name
+                ),
+                "frame_label",
+            ]
+            .astype("int64")
+            .unique()
+        )
+
+        if labels != {0, 1}:
+            raise AssertionError(
+                f"Model split {split_name!r} does not "
+                f"contain both labels: {sorted(labels)}"
+            )
+
+    return assigned
+
+
+def summarize_model_splits(
+    assigned_frame_index: pd.DataFrame,
+) -> pd.DataFrame:
+    """Summarize assigned model splits and class prevalence."""
+
+    required = {
+        "model_split",
+        "validation_group_key",
+        "frame_id",
+        "file_id",
+        "frame_label",
+    }
+    missing = sorted(
+        required
+        - set(assigned_frame_index.columns)
+    )
+
+    if missing:
+        raise AssertionError(
+            "Assigned frame index is missing columns: "
+            f"{missing}"
+        )
+
+    summary = (
+        assigned_frame_index.groupby(
+            "model_split",
+            sort=False,
+            observed=True,
+        )
+        .agg(
+            frame_count=("frame_id", "size"),
+            file_count=("file_id", "nunique"),
+            group_count=(
+                "validation_group_key",
+                "nunique",
+            ),
+            positive_frames=("frame_label", "sum"),
+        )
+        .reset_index()
+    )
+
+    split_order = {
+        "train": 0,
+        "validation": 1,
+        "test": 2,
+    }
+
+    summary["_order"] = summary[
+        "model_split"
+    ].map(split_order)
+
+    summary = (
+        summary.sort_values("_order")
+        .drop(columns="_order")
+        .reset_index(drop=True)
+    )
+
+    summary["negative_frames"] = (
+        summary["frame_count"]
+        - summary["positive_frames"]
+    )
+    summary["positive_prevalence"] = (
+        summary["positive_frames"]
+        / summary["frame_count"]
+    )
+    summary["frame_fraction"] = (
+        summary["frame_count"]
+        / summary["frame_count"].sum()
+    )
+
+    return summary

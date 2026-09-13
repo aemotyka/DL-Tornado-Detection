@@ -8,9 +8,12 @@ import pytest
 from tornado_detection.data.training_index import (
     CANONICAL_MANIFEST_SOURCES,
     EXPECTED_YEARS,
+    assign_model_splits,
+    build_validation_group_keys,
     canonical_manifest_directory,
     load_canonical_frame_index,
     summarize_canonical_frame_index,
+    summarize_model_splits,
 )
 
 
@@ -280,3 +283,142 @@ def test_rejects_missing_success_marker(
             tmp_path,
             expected_frame_count=expected_rows,
         )
+
+
+
+def test_validation_groups_use_file_fallback(
+    tmp_path: Path,
+) -> None:
+    expected_rows = _write_fixture_manifests(
+        tmp_path
+    )
+    frame_index = load_canonical_frame_index(
+        tmp_path,
+        expected_frame_count=expected_rows,
+    )
+
+    group_keys = build_validation_group_keys(
+        frame_index
+    )
+
+    sentinel_rows = frame_index.loc[
+        frame_index["event_group_id"].eq("-1")
+    ]
+
+    sentinel_keys = group_keys.loc[
+        sentinel_rows.index
+    ]
+
+    assert sentinel_keys.str.startswith(
+        "file:"
+    ).all()
+    assert (
+        sentinel_keys.nunique()
+        == sentinel_rows["file_id"].nunique()
+    )
+
+    real_rows = frame_index.loc[
+        ~frame_index["event_group_id"].eq("-1")
+    ]
+    real_keys = group_keys.loc[
+        real_rows.index
+    ]
+
+    assert real_keys.str.startswith(
+        "event:"
+    ).all()
+
+
+def test_model_split_is_deterministic_and_disjoint(
+    tmp_path: Path,
+) -> None:
+    expected_rows = _write_fixture_manifests(
+        tmp_path
+    )
+    frame_index = load_canonical_frame_index(
+        tmp_path,
+        expected_frame_count=expected_rows,
+    )
+
+    first = assign_model_splits(
+        frame_index,
+        validation_fraction=0.50,
+        seed=7,
+        expected_frame_count=expected_rows,
+    )
+    second = assign_model_splits(
+        frame_index,
+        validation_fraction=0.50,
+        seed=7,
+        expected_frame_count=expected_rows,
+    )
+
+    pd.testing.assert_series_equal(
+        first["model_split"],
+        second["model_split"],
+    )
+    pd.testing.assert_series_equal(
+        first["validation_group_key"],
+        second["validation_group_key"],
+    )
+
+    official_test = first.loc[
+        first["split"].eq("test")
+    ]
+
+    assert official_test["model_split"].eq(
+        "test"
+    ).all()
+
+    internal = first.loc[
+        first["model_split"].isin(
+            [
+                "train",
+                "validation",
+            ]
+        )
+    ]
+
+    assert (
+        internal.groupby(
+            "validation_group_key"
+        )["model_split"]
+        .nunique()
+        .max()
+        == 1
+    )
+
+    summary = summarize_model_splits(first)
+
+    assert set(summary["model_split"]) == {
+        "train",
+        "validation",
+        "test",
+    }
+
+
+def test_rejects_invalid_validation_fraction(
+    tmp_path: Path,
+) -> None:
+    expected_rows = _write_fixture_manifests(
+        tmp_path
+    )
+    frame_index = load_canonical_frame_index(
+        tmp_path,
+        expected_frame_count=expected_rows,
+    )
+
+    for invalid_fraction in (
+        0.0,
+        1.0,
+        -0.1,
+        1.1,
+    ):
+        with pytest.raises(
+            ValueError,
+            match="validation_fraction",
+        ):
+            assign_model_splits(
+                frame_index,
+                validation_fraction=invalid_fraction,
+            )

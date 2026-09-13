@@ -25,13 +25,19 @@ from tornado_detection.data.training_index import (
     CANONICAL_MANIFEST_SOURCES,
     EXPECTED_CANONICAL_FRAME_COUNT,
     EXPECTED_YEARS,
+    assign_model_splits,
+    build_validation_group_keys,
     canonical_manifest_directory,
     load_canonical_frame_index,
     summarize_canonical_frame_index,
+    summarize_model_splits,
     validate_canonical_frame_index,
 )
 
 __all__ = [
+    "summarize_model_splits",
+    "build_validation_group_keys",
+    "assign_model_splits",
     "validate_canonical_frame_index",
     "summarize_canonical_frame_index",
     "load_canonical_frame_index",
