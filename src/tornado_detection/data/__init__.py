@@ -34,7 +34,24 @@ from tornado_detection.data.training_index import (
     validate_canonical_frame_index,
 )
 
+from tornado_detection.data.tensor import (
+    DEFAULT_RADAR_VARIABLES,
+    EXPECTED_FRAME_SHAPE,
+    EXPECTED_RADAR_DIMENSIONS,
+    EXPECTED_SWEEP_COUNT,
+    FrameTensor,
+    build_frame_tensor,
+    read_netcdf_frame,
+)
+
 __all__ = [
+    "DEFAULT_RADAR_VARIABLES",
+    "EXPECTED_FRAME_SHAPE",
+    "EXPECTED_RADAR_DIMENSIONS",
+    "EXPECTED_SWEEP_COUNT",
+    "FrameTensor",
+    "build_frame_tensor",
+    "read_netcdf_frame",
     "summarize_model_splits",
     "build_validation_group_keys",
     "assign_model_splits",
