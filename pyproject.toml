@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tornet-detection"
-version = "0.1.7"
+version = "0.1.8"
 description = "Reproducible TorNet tornado-detection research pipeline"
 requires-python = ">=3.11"
 dependencies = [
@@ -18,6 +18,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8",
+]
+ml = [
+    "torch>=2.2,<3",
 ]
 
 [tool.setuptools.packages.find]
