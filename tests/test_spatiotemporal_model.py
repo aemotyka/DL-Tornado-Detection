@@ -135,3 +135,49 @@ def test_parameter_count_is_substantial_but_bounded() -> None:
     )
 
     assert 1_000_000 < parameter_count < 10_000_000
+
+
+def test_sparse_pooling_uses_only_top_spatial_cells() -> None:
+    model = SpatiotemporalTornadoDetector(
+        encoder_widths=(8, 16),
+        temporal_channels=16,
+        pooling_topk_fraction=0.25,
+    )
+    maps = torch.arange(
+        16,
+        dtype=torch.float32,
+    ).reshape(1, 1, 4, 4)
+
+    actual = model._pool_likelihood(maps)
+
+    selected = torch.tensor(
+        [12.0, 13.0, 14.0, 15.0]
+    )
+    expected = (
+        torch.logsumexp(
+            selected,
+            dim=0,
+        )
+        - torch.log(torch.tensor(4.0))
+    )
+
+    torch.testing.assert_close(
+        actual,
+        expected.reshape(1, 1),
+    )
+
+
+@pytest.mark.parametrize(
+    "fraction",
+    [0.0, -0.1, 1.1],
+)
+def test_rejects_invalid_sparse_pooling_fraction(
+    fraction: float,
+) -> None:
+    with pytest.raises(
+        ValueError,
+        match="pooling_topk_fraction",
+    ):
+        SpatiotemporalTornadoDetector(
+            pooling_topk_fraction=fraction,
+        )

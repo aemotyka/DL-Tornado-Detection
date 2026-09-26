@@ -235,6 +235,7 @@ class SpatiotemporalTornadoDetector(nn.Module):
         ),
         temporal_channels: int = 128,
         pooling_temperature: float = 1.0,
+        pooling_topk_fraction: float | None = None,
     ) -> None:
         super().__init__()
 
@@ -255,11 +256,19 @@ class SpatiotemporalTornadoDetector(nn.Module):
             raise ValueError(
                 "pooling_temperature must be positive"
             )
+        if (
+            pooling_topk_fraction is not None
+            and not 0.0 < pooling_topk_fraction <= 1.0
+        ):
+            raise ValueError(
+                "pooling_topk_fraction must be in (0, 1]"
+            )
 
         self.variable_count = variable_count
         self.sweep_count = sweep_count
         self.coordinate_count = coordinate_count
         self.pooling_temperature = pooling_temperature
+        self.pooling_topk_fraction = pooling_topk_fraction
 
         sweep_input_channels = (
             variable_count
@@ -373,6 +382,19 @@ class SpatiotemporalTornadoDetector(nn.Module):
         flattened = likelihood_maps.flatten(start_dim=2)
         temperature = self.pooling_temperature
         count = flattened.shape[-1]
+
+        if self.pooling_topk_fraction is not None:
+            count = max(
+                1,
+                math.ceil(
+                    count
+                    * self.pooling_topk_fraction
+                ),
+            )
+            flattened = flattened.topk(
+                count,
+                dim=-1,
+            ).values
 
         return temperature * (
             torch.logsumexp(
