@@ -236,6 +236,7 @@ class SpatiotemporalTornadoDetector(nn.Module):
         temporal_channels: int = 128,
         pooling_temperature: float = 1.0,
         pooling_topk_fraction: float | None = None,
+        bidirectional_temporal: bool = False,
     ) -> None:
         super().__init__()
 
@@ -269,6 +270,7 @@ class SpatiotemporalTornadoDetector(nn.Module):
         self.coordinate_count = coordinate_count
         self.pooling_temperature = pooling_temperature
         self.pooling_topk_fraction = pooling_topk_fraction
+        self.bidirectional_temporal = bidirectional_temporal
 
         sweep_input_channels = (
             variable_count
@@ -303,9 +305,24 @@ class SpatiotemporalTornadoDetector(nn.Module):
             temporal_channels,
             temporal_channels,
         )
+
+        if bidirectional_temporal:
+            self.temporal_reverse = CausalConvGRU(
+                temporal_channels,
+                temporal_channels,
+            )
+            temporal_output_channels = (
+                2 * temporal_channels
+            )
+        else:
+            self.temporal_reverse = None
+            temporal_output_channels = (
+                temporal_channels
+            )
+
         self.likelihood_head = nn.Sequential(
             nn.Conv2d(
-                temporal_channels,
+                temporal_output_channels,
                 temporal_channels // 2,
                 kernel_size=3,
                 padding=1,
@@ -492,7 +509,28 @@ class SpatiotemporalTornadoDetector(nn.Module):
             encoded_width,
         )
 
-        temporal_features = self.temporal(fused)
+        temporal_features = self.temporal(
+            fused
+        )
+
+        if self.temporal_reverse is not None:
+            reverse_features = torch.flip(
+                self.temporal_reverse(
+                    torch.flip(
+                        fused,
+                        dims=(1,),
+                    )
+                ),
+                dims=(1,),
+            )
+            temporal_features = torch.cat(
+                (
+                    temporal_features,
+                    reverse_features,
+                ),
+                dim=2,
+            )
+
         likelihood_maps = self.likelihood_head(
             temporal_features.reshape(
                 batch * time,

@@ -181,3 +181,69 @@ def test_rejects_invalid_sparse_pooling_fraction(
         SpatiotemporalTornadoDetector(
             pooling_topk_fraction=fraction,
         )
+
+
+
+def test_bidirectional_output_shapes_and_finite_gradients() -> None:
+    model = SpatiotemporalTornadoDetector(
+        encoder_widths=(8, 16),
+        temporal_channels=16,
+        bidirectional_temporal=True,
+    )
+    logits, maps = model.forward_with_maps(
+        *_inputs()
+    )
+
+    assert logits.shape == (2, 4)
+    assert maps.shape == (2, 4, 8, 16)
+    assert torch.isfinite(logits).all()
+
+    logits.sum().backward()
+
+    reverse_gradients = [
+        parameter.grad
+        for parameter
+        in model.temporal_reverse.parameters()
+    ]
+
+    assert all(
+        gradient is not None
+        for gradient in reverse_gradients
+    )
+    assert all(
+        torch.isfinite(gradient).all()
+        for gradient in reverse_gradients
+    )
+
+
+def test_bidirectional_predictions_use_future_frames() -> None:
+    torch.manual_seed(29)
+
+    model = SpatiotemporalTornadoDetector(
+        encoder_widths=(8, 16),
+        temporal_channels=16,
+        bidirectional_temporal=True,
+    ).eval()
+    inputs = list(_inputs(batch=1))
+
+    with torch.no_grad():
+        original = model(*inputs)
+
+    changed_values = inputs[0].clone()
+    changed_values[:, 3] = torch.nan_to_num(
+        changed_values[:, 3],
+        nan=0.0,
+    ) + 100.0
+    inputs[0] = changed_values
+
+    with torch.no_grad():
+        changed = model(*inputs)
+
+    assert not torch.equal(
+        original[:, 0],
+        changed[:, 0],
+    )
+    assert not torch.equal(
+        original[:, 3],
+        changed[:, 3],
+    )
