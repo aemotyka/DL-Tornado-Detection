@@ -247,3 +247,75 @@ def test_bidirectional_predictions_use_future_frames() -> None:
         original[:, 3],
         changed[:, 3],
     )
+
+
+
+def test_sequence_category_auxiliary_head() -> None:
+    model = SpatiotemporalTornadoDetector(
+        encoder_widths=(8, 16),
+        temporal_channels=16,
+        bidirectional_temporal=True,
+        sequence_category_count=3,
+    )
+
+    (
+        logits,
+        maps,
+        category_logits,
+    ) = model.forward_with_category(
+        *_inputs()
+    )
+
+    assert logits.shape == (2, 4)
+    assert maps.shape == (2, 4, 8, 16)
+    assert category_logits.shape == (2, 3)
+
+    (
+        logits.sum()
+        + category_logits.sum()
+    ).backward()
+
+    gradients = [
+        parameter.grad
+        for parameter
+        in model.sequence_category_head.parameters()
+    ]
+
+    assert all(
+        gradient is not None
+        for gradient in gradients
+    )
+    assert all(
+        torch.isfinite(
+            gradient
+        ).all()
+        for gradient in gradients
+    )
+
+
+def test_auxiliary_forward_requires_category_head() -> None:
+    model = _model()
+
+    with pytest.raises(
+        RuntimeError,
+        match="sequence_category_count",
+    ):
+        model.forward_with_category(
+            *_inputs()
+        )
+
+
+@pytest.mark.parametrize(
+    "count",
+    [0, 1],
+)
+def test_rejects_invalid_sequence_category_count(
+    count: int,
+) -> None:
+    with pytest.raises(
+        ValueError,
+        match="sequence_category_count",
+    ):
+        SpatiotemporalTornadoDetector(
+            sequence_category_count=count,
+        )

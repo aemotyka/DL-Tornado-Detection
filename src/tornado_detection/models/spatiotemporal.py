@@ -237,6 +237,7 @@ class SpatiotemporalTornadoDetector(nn.Module):
         pooling_temperature: float = 1.0,
         pooling_topk_fraction: float | None = None,
         bidirectional_temporal: bool = False,
+        sequence_category_count: int | None = None,
     ) -> None:
         super().__init__()
 
@@ -264,6 +265,13 @@ class SpatiotemporalTornadoDetector(nn.Module):
             raise ValueError(
                 "pooling_topk_fraction must be in (0, 1]"
             )
+        if (
+            sequence_category_count is not None
+            and sequence_category_count < 2
+        ):
+            raise ValueError(
+                "sequence_category_count must be at least two"
+            )
 
         self.variable_count = variable_count
         self.sweep_count = sweep_count
@@ -271,6 +279,7 @@ class SpatiotemporalTornadoDetector(nn.Module):
         self.pooling_temperature = pooling_temperature
         self.pooling_topk_fraction = pooling_topk_fraction
         self.bidirectional_temporal = bidirectional_temporal
+        self.sequence_category_count = sequence_category_count
 
         sweep_input_channels = (
             variable_count
@@ -334,6 +343,25 @@ class SpatiotemporalTornadoDetector(nn.Module):
                 kernel_size=1,
             ),
         )
+
+        if sequence_category_count is None:
+            self.sequence_category_head = None
+        else:
+            self.sequence_category_head = nn.Sequential(
+                nn.Conv2d(
+                    4,
+                    16,
+                    kernel_size=3,
+                    padding=1,
+                ),
+                nn.SiLU(),
+                nn.AdaptiveAvgPool2d(1),
+                nn.Flatten(),
+                nn.Linear(
+                    16,
+                    sequence_category_count,
+                ),
+            )
 
     def _validate_inputs(
         self,
@@ -547,6 +575,44 @@ class SpatiotemporalTornadoDetector(nn.Module):
         logits = self._pool_likelihood(likelihood_maps)
 
         return logits, likelihood_maps
+
+    def forward_with_category(
+        self,
+        values: torch.Tensor,
+        finite_mask: torch.Tensor,
+        range_folded_mask: torch.Tensor,
+        coordinates: torch.Tensor,
+    ) -> tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ]:
+        """Return frame, map, and sequence-category logits."""
+
+        if self.sequence_category_head is None:
+            raise RuntimeError(
+                "sequence_category_count was not configured"
+            )
+
+        logits, likelihood_maps = (
+            self.forward_with_maps(
+                values,
+                finite_mask,
+                range_folded_mask,
+                coordinates,
+            )
+        )
+        category_logits = (
+            self.sequence_category_head(
+                likelihood_maps
+            )
+        )
+
+        return (
+            logits,
+            likelihood_maps,
+            category_logits,
+        )
 
     def forward(
         self,
