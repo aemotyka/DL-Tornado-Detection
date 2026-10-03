@@ -51,8 +51,8 @@ This document is the authoritative checklist for closing, packaging, and releasi
 - [ ] Add `MODEL_CARD.md`.
 - [ ] Make and document a license decision.
 - [ ] Add continuous integration.
-- [ ] Add a supported inference API.
-- [ ] Add a command-line inference entry point.
+- [x] Add a supported inference API.
+- [x] Add a command-line inference entry point.
 - [x] Add a canonical machine-readable model configuration.
 - [ ] Add a release artifact manifest.
 - [ ] Add SHA-256 checksums for release artifacts.
@@ -107,21 +107,21 @@ SpatiotemporalTornadoDetector(
 
 ### Inference interface
 
-- [ ] Add `src/tornado_detection/inference.py`.
-- [ ] Add `src/tornado_detection/cli.py`.
-- [ ] Add `tests/test_inference.py`.
-- [ ] Implement the supported Python API:
+- [x] Add `src/tornado_detection/inference.py`.
+- [x] Add `src/tornado_detection/cli.py`.
+- [x] Add `tests/test_inference.py`.
+- [x] Implement the supported Python API:
 
 ```python
 detector = TornadoDetector.from_bundle(bundle_directory)
 result = detector.predict_file(netcdf_path)
 ```
 
-- [ ] Return four frame scores and four frozen-threshold predictions.
-- [ ] Include the threshold, variables, sequence shape, and bidirectional designation in the result.
-- [ ] Do not call raw sigmoid outputs calibrated probabilities in documentation or output schemas.
-- [ ] Add the `tornet-detect` console entry point to `pyproject.toml`.
-- [ ] Support this command:
+- [x] Return four frame scores and four frozen-threshold predictions.
+- [x] Include the threshold, variables, sequence shape, and bidirectional designation in the result.
+- [x] Do not call raw sigmoid outputs calibrated probabilities in documentation or output schemas.
+- [x] Add the `tornet-detect` console entry point to `pyproject.toml`.
+- [x] Support this command:
 
 ```bash
 tornet-detect \
@@ -130,11 +130,11 @@ tornet-detect \
   --output prediction.json
 ```
 
-- [ ] Validate required bundle files before inference.
-- [ ] Load the checkpoint with strict state-dictionary validation.
-- [ ] Apply the exact stored normalization and channel order.
-- [ ] Default to CPU when CUDA is unavailable.
-- [ ] Add deterministic synthetic inference tests.
+- [x] Validate required bundle files before inference.
+- [x] Load the checkpoint with strict state-dictionary validation.
+- [x] Apply the exact stored normalization and channel order.
+- [x] Default to CPU when CUDA is unavailable.
+- [x] Add deterministic synthetic inference tests.
 
 ## Pass 2 — Build the release bundle
 
