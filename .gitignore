@@ -11,7 +11,10 @@ __pycache__/
 
 # Local and generated data
 /data/
-artifacts/
+artifacts/*
+!artifacts/v1/
+artifacts/v1/*
+!artifacts/v1/model_config.json
 *.nc
 *.npz
 *.npy

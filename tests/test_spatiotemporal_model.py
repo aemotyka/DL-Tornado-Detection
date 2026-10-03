@@ -127,14 +127,27 @@ def test_rejects_flattened_frame_input() -> None:
         )
 
 
-def test_parameter_count_is_substantial_but_bounded() -> None:
-    model = SpatiotemporalTornadoDetector()
+def test_final_v4_parameter_count() -> None:
+    model = SpatiotemporalTornadoDetector(
+        variable_count=6,
+        sweep_count=2,
+        coordinate_count=5,
+        encoder_widths=(32, 64, 128),
+        temporal_channels=128,
+        pooling_temperature=1.0,
+        pooling_topk_fraction=0.05,
+        bidirectional_temporal=True,
+    )
     parameter_count = sum(
         parameter.numel()
         for parameter in model.parameters()
     )
 
-    assert 1_000_000 < parameter_count < 10_000_000
+    assert parameter_count == 2_970_049
+    assert not any(
+        key.startswith("sequence_category_head.")
+        for key in model.state_dict()
+    )
 
 
 def test_sparse_pooling_uses_only_top_spatial_cells() -> None:
@@ -247,75 +260,3 @@ def test_bidirectional_predictions_use_future_frames() -> None:
         original[:, 3],
         changed[:, 3],
     )
-
-
-
-def test_sequence_category_auxiliary_head() -> None:
-    model = SpatiotemporalTornadoDetector(
-        encoder_widths=(8, 16),
-        temporal_channels=16,
-        bidirectional_temporal=True,
-        sequence_category_count=3,
-    )
-
-    (
-        logits,
-        maps,
-        category_logits,
-    ) = model.forward_with_category(
-        *_inputs()
-    )
-
-    assert logits.shape == (2, 4)
-    assert maps.shape == (2, 4, 8, 16)
-    assert category_logits.shape == (2, 3)
-
-    (
-        logits.sum()
-        + category_logits.sum()
-    ).backward()
-
-    gradients = [
-        parameter.grad
-        for parameter
-        in model.sequence_category_head.parameters()
-    ]
-
-    assert all(
-        gradient is not None
-        for gradient in gradients
-    )
-    assert all(
-        torch.isfinite(
-            gradient
-        ).all()
-        for gradient in gradients
-    )
-
-
-def test_auxiliary_forward_requires_category_head() -> None:
-    model = _model()
-
-    with pytest.raises(
-        RuntimeError,
-        match="sequence_category_count",
-    ):
-        model.forward_with_category(
-            *_inputs()
-        )
-
-
-@pytest.mark.parametrize(
-    "count",
-    [0, 1],
-)
-def test_rejects_invalid_sequence_category_count(
-    count: int,
-) -> None:
-    with pytest.raises(
-        ValueError,
-        match="sequence_category_count",
-    ):
-        SpatiotemporalTornadoDetector(
-            sequence_category_count=count,
-        )

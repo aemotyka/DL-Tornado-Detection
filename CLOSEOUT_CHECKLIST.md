@@ -43,7 +43,7 @@ This document is the authoritative checklist for closing, packaging, and releasi
   - Learned frame-task weight exploded to `1,982,829.25`.
   - Training loss reached millions.
   - The learned multitask weighting was numerically unhealthy.
-- [ ] Remove V5-only auxiliary-category code from the final `1.0.0` package surface.
+- [x] Remove V5-only auxiliary-category code from the final `1.0.0` package surface.
 
 ## Current packaging gaps
 
@@ -53,7 +53,7 @@ This document is the authoritative checklist for closing, packaging, and releasi
 - [ ] Add continuous integration.
 - [ ] Add a supported inference API.
 - [ ] Add a command-line inference entry point.
-- [ ] Add a canonical machine-readable model configuration.
+- [x] Add a canonical machine-readable model configuration.
 - [ ] Add a release artifact manifest.
 - [ ] Add SHA-256 checksums for release artifacts.
 - [ ] Document the relationship between the wheel, checkpoint, normalization, configuration, and frozen threshold.
@@ -65,21 +65,21 @@ This document is the authoritative checklist for closing, packaging, and releasi
 
 ### Package cleanup
 
-- [ ] Remove the optional V5 sequence-category head and its tests from the release package.
-- [ ] Retain the successful V4 features:
+- [x] Remove the optional V5 sequence-category head and its tests from the release package.
+- [x] Retain the successful V4 features:
   - Bidirectional temporal processing
   - Sparse top-k spatial pooling
   - Six-variable, two-sweep, four-frame input contract
   - Explicit finite, range-folded, and coordinate inputs
-- [ ] Bump the package version to `1.0.0`.
-- [ ] Confirm the final model has `2,970,049` parameters.
+- [x] Bump the package version to `1.0.0`.
+- [x] Confirm the final model has `2,970,049` parameters.
 - [ ] Confirm existing V4 checkpoint keys load strictly into the final model.
 - [ ] Confirm all unit tests pass.
 
 ### Canonical model configuration
 
-- [ ] Create `artifacts/v1/model_config.json`.
-- [ ] Record these constructor arguments:
+- [x] Create `artifacts/v1/model_config.json`.
+- [x] Record these constructor arguments:
 
 ```python
 SpatiotemporalTornadoDetector(
@@ -94,16 +94,16 @@ SpatiotemporalTornadoDetector(
 )
 ```
 
-- [ ] Record variable order and channel order.
-- [ ] Record coordinate names.
-- [ ] Record sequence shape `[4, 2, 6, 120, 240]`.
-- [ ] Record normalization provenance.
-- [ ] Record validation fraction and split seed.
-- [ ] Record training seed.
-- [ ] Record checkpoint epoch `23`.
-- [ ] Record frozen threshold `0.9532915353775024`.
-- [ ] Record package version `1.0.0`.
-- [ ] Record that the model is bidirectional and offline-only.
+- [x] Record variable order and channel order.
+- [x] Record coordinate names.
+- [x] Record sequence shape `[4, 2, 6, 120, 240]`.
+- [x] Record normalization provenance.
+- [x] Record validation fraction and split seed.
+- [x] Record training seed.
+- [x] Record checkpoint epoch `23`.
+- [x] Record frozen threshold `0.9532915353775024`.
+- [x] Record package version `1.0.0`.
+- [x] Record that the model is bidirectional and offline-only.
 
 ### Inference interface
 

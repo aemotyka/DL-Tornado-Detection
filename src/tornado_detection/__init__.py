@@ -1,3 +1,3 @@
 """TorNet tornado-detection research package."""
 
-__version__ = "0.1.11"
+__version__ = "1.0.0"
