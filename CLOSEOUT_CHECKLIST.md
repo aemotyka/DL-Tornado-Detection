@@ -30,14 +30,14 @@ This document is the authoritative checklist for closing, packaging, and releasi
   - False positives: `1,682`
   - True negatives: `120,277`
 - [x] Permanently close the official test set after the V4 evaluation.
-- [ ] Verify the preserved V4 checkpoint, normalization artifact, validation metrics, official-test metrics, and diagnostic artifacts still exist in Drive.
+- [x] Verify the preserved V4 checkpoint, normalization artifact, validation metrics, official-test metrics, and diagnostic artifacts still exist in Drive.
 
 ## Rejected V5 experiment
 
 - [x] Reject V5 as a final-model candidate.
 - [x] Do not evaluate V5 on the official test.
 - [x] Preserve notebook 31 as a documented failed experiment.
-- [ ] Document the V5 failure in the notebook index and model-development history:
+- [x] Document the V5 failure in the notebook index and model-development history:
   - Validation PR-AUC fell to `0.5779056354733761`.
   - Validation F1 fell to `0.5604611555089742`.
   - Learned frame-task weight exploded to `1,982,829.25`.
@@ -47,8 +47,8 @@ This document is the authoritative checklist for closing, packaging, and releasi
 
 ## Current packaging gaps
 
-- [ ] Add a root `README.md`.
-- [ ] Add `MODEL_CARD.md`.
+- [x] Add a root `README.md`.
+- [x] Add `MODEL_CARD.md`.
 - [ ] Make and document a license decision.
 - [ ] Add continuous integration.
 - [x] Add a supported inference API.
@@ -56,8 +56,8 @@ This document is the authoritative checklist for closing, packaging, and releasi
 - [x] Add a canonical machine-readable model configuration.
 - [ ] Add a release artifact manifest.
 - [ ] Add SHA-256 checksums for release artifacts.
-- [ ] Document the relationship between the wheel, checkpoint, normalization, configuration, and frozen threshold.
-- [ ] Add a notebook index identifying authoritative and superseded notebooks.
+- [x] Document the relationship between the wheel, checkpoint, normalization, configuration, and frozen threshold.
+- [x] Add a notebook index identifying authoritative and superseded notebooks.
 - [ ] Add a clean-install, end-to-end inference smoke test.
 - [x] Remove the obsolete root-level original final-project notebook and PDF.
 
@@ -73,8 +73,8 @@ This document is the authoritative checklist for closing, packaging, and releasi
   - Explicit finite, range-folded, and coordinate inputs
 - [x] Bump the package version to `1.0.0`.
 - [x] Confirm the final model has `2,970,049` parameters.
-- [ ] Confirm existing V4 checkpoint keys load strictly into the final model.
-- [ ] Confirm all unit tests pass.
+- [x] Confirm existing V4 checkpoint keys load strictly into the final model.
+- [x] Confirm all unit tests pass.
 
 ### Canonical model configuration
 
@@ -169,12 +169,12 @@ tornet-detection-v1.0.0/
 
 ### Root README
 
-- [ ] Create `README.md`.
-- [ ] Explain the tornado-detection problem and TorNet dataset.
-- [ ] Explain the explicit time, sweep, variable, azimuth, and range axes.
-- [ ] Explain the final bidirectional architecture.
-- [ ] Explain train, validation, and official-test isolation.
-- [ ] Include the final results table:
+- [x] Create `README.md`.
+- [x] Explain the tornado-detection problem and TorNet dataset.
+- [x] Explain the explicit time, sweep, variable, azimuth, and range axes.
+- [x] Explain the final bidirectional architecture.
+- [x] Explain train, validation, and official-test isolation.
+- [x] Include the final results table:
 
 | Model | Validation PR-AUC | Test PR-AUC | Test F1 | Test ROC-AUC |
 |---|---:|---:|---:|---:|
@@ -182,56 +182,56 @@ tornet-detection-v1.0.0/
 | Causal spatiotemporal V1 | 0.5670 | 0.4940 | 0.4949 | 0.9150 |
 | Bidirectional V4 | **0.6103** | **0.5233** | **0.5273** | **0.9252** |
 
-- [ ] Include installation instructions.
-- [ ] Include model-bundle acquisition instructions.
-- [ ] Include Python inference and CLI examples.
-- [ ] Include the canonical reproduction path.
-- [ ] Include limitations and intended-use warnings.
-- [ ] State that the `0.953` threshold operates on an uncalibrated model score.
-- [ ] State that V4 improved official-test PR-AUC by approximately `50.7%` over the original 2D baseline.
+- [x] Include installation instructions.
+- [x] Include model-bundle acquisition instructions.
+- [x] Include Python inference and CLI examples.
+- [x] Include the canonical reproduction path.
+- [x] Include limitations and intended-use warnings.
+- [x] State that the `0.953` threshold operates on an uncalibrated model score.
+- [x] State that V4 improved official-test PR-AUC by approximately `50.7%` over the original 2D baseline.
 
 ### Model card
 
-- [ ] Create `MODEL_CARD.md`.
-- [ ] State that the model is an offline research detector.
-- [ ] State that bidirectional processing uses future frames.
-- [ ] State that the model is not a real-time warning system.
-- [ ] State that the model is not operationally validated.
-- [ ] Document year-to-year performance variation.
-- [ ] Note that 2020 and 2021 remain difficult years.
-- [ ] State that model scores are not calibrated probabilities.
-- [ ] Document false-negative and false-positive risks.
-- [ ] Document dataset scope, provenance, and licensing.
-- [ ] Disclose that the official test was evaluated after V1 and again after V4.
-- [ ] Document suitable and unsuitable uses.
+- [x] Create `MODEL_CARD.md`.
+- [x] State that the model is an offline research detector.
+- [x] State that bidirectional processing uses future frames.
+- [x] State that the model is not a real-time warning system.
+- [x] State that the model is not operationally validated.
+- [x] Document year-to-year performance variation.
+- [x] Note that 2020 and 2021 remain difficult years.
+- [x] State that model scores are not calibrated probabilities.
+- [x] Document false-negative and false-positive risks.
+- [x] Document dataset scope, provenance, and licensing.
+- [x] Disclose that the official test was evaluated after V1 and again after V4.
+- [x] Document suitable and unsuitable uses.
 
 ### Notebook index
 
-- [ ] Create `notebooks/README.md`.
-- [ ] Classify notebooks `00–03` as data foundation.
-- [ ] Classify notebooks `04–19` as early baselines.
-- [ ] Classify notebooks `20–27` as spatiotemporal development.
-- [ ] Mark notebook `28` as final-model training.
-- [ ] Mark notebook `29` as final official evaluation.
-- [ ] Mark notebook `30` as final validation diagnostics.
-- [ ] Mark notebook `31` as a rejected experiment.
-- [ ] Document the canonical closeout path:
+- [x] Create `notebooks/README.md`.
+- [x] Classify notebooks `00–03` as data foundation.
+- [x] Classify notebooks `04–19` as early baselines.
+- [x] Classify notebooks `20–27` as spatiotemporal development.
+- [x] Mark notebook `28` as final-model training.
+- [x] Mark notebook `29` as final official evaluation.
+- [x] Mark notebook `30` as final validation diagnostics.
+- [x] Mark notebook `31` as a rejected experiment.
+- [x] Document the canonical closeout path:
 
 ```text
 00 → 01 → 02 → 03 → 16 → 27 → 28 → 29 → 30
 ```
 
-- [ ] Leave historical notebooks in place to preserve experimental provenance.
-- [ ] Explicitly mark noncanonical notebooks as historical or superseded.
+- [x] Leave historical notebooks in place to preserve experimental provenance.
+- [x] Explicitly mark noncanonical notebooks as historical or superseded.
 
 ### Attribution and licensing
 
 - [ ] Choose a code license, such as MIT or Apache-2.0, only after deciding how the code may be reused.
 - [ ] Confirm the TorNet dataset license and required attribution.
 - [ ] Confirm whether trained weights may be redistributed.
-- [ ] Add the TorNet citation.
+- [x] Add the TorNet citation.
 - [ ] Add attribution for any retained course-derived material.
-- [ ] Keep code licensing distinct from dataset and model-weight licensing.
+- [x] Keep code licensing distinct from dataset and model-weight licensing.
 
 ## Pass 4 — CI, verification, and release
 
