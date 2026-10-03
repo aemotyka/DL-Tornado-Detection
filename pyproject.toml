@@ -5,7 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tornet-detection"
 version = "1.0.0"
-description = "Reproducible TorNet tornado-detection research pipeline"
+description = "Spatiotemporal tornado-detection experiments on TorNet"
+license = { file = "LICENSE" }
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26",
@@ -20,6 +21,7 @@ tornet-detect = "tornado_detection.cli:main"
 
 [project.optional-dependencies]
 dev = [
+    "build>=1.2",
     "pytest>=8",
 ]
 ml = [
