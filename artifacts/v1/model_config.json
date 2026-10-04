@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "package_version": "1.0.0",
+  "model_class": "SpatiotemporalTornadoDetector",
+  "model": {
+    "variable_count": 6,
+    "sweep_count": 2,
+    "coordinate_count": 5,
+    "encoder_widths": [
+      32,
+      64,
+      128
+    ],
+    "temporal_channels": 128,
+    "pooling_temperature": 1.0,
+    "pooling_topk_fraction": 0.05,
+    "bidirectional_temporal": true
+  },
+  "variables": [
+    "DBZ",
+    "KDP",
+    "RHOHV",
+    "VEL",
+    "WIDTH",
+    "ZDR"
+  ],
+  "channel_order": [
+    "DBZ_sweep_0",
+    "DBZ_sweep_1",
+    "KDP_sweep_0",
+    "KDP_sweep_1",
+    "RHOHV_sweep_0",
+    "RHOHV_sweep_1",
+    "VEL_sweep_0",
+    "VEL_sweep_1",
+    "WIDTH_sweep_0",
+    "WIDTH_sweep_1",
+    "ZDR_sweep_0",
+    "ZDR_sweep_1"
+  ],
+  "coordinate_names": [
+    "range_100km",
+    "inverse_range_100km",
+    "sin_azimuth",
+    "cos_azimuth",
+    "elevation_degrees"
+  ],
+  "sequence_shape": [
+    4,
+    2,
+    6,
+    120,
+    240
+  ],
+  "temporal_context": "full four-frame offline sequence",
+  "offline_only": true,
+  "normalization": {
+    "bundle_filename": "normalization.json",
+    "source_experiment": "all_year_all6_baseline_v1"
+  },
+  "data_split": {
+    "validation_fraction": 0.2,
+    "validation_seed": 20260913
+  },
+  "training_seed": 20260928,
+  "checkpoint": {
+    "bundle_filename": "best_model.pt",
+    "epoch": 23
+  },
+  "decision_threshold": 0.9532915353775024,
+  "score_semantics": "uncalibrated sigmoid score"
+}

@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tornet-detection"
+version = "1.0.0"
+description = "Spatiotemporal tornado-detection experiments on TorNet"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26,<2.5",
+    "pandas>=2.2,<3",
+    "xarray>=2024.10",
+    "netCDF4>=1.7",
+    "pyarrow>=17",
+]
+
+[project.scripts]
+tornet-detect = "tornado_detection.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "build>=1.2",
+    "pytest>=8",
+]
+ml = [
+    "torch>=2.2,<3",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
