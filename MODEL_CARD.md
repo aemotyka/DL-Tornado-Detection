@@ -67,4 +67,4 @@ The test split was run after V1 and after V4 selection. V5 was rejected on valid
 
 ## Data and weights
 
-TorNet data and the V4 checkpoint are not included. See [Veillette et al.](https://arxiv.org/abs/2401.16437) and [`DATA_AND_MODEL_LICENSE.md`](DATA_AND_MODEL_LICENSE.md).
+TorNet data and the V4 checkpoint are not included. See [Veillette et al.](https://doi.org/10.1175/AIES-D-24-0006.1) and [`DATA_AND_MODEL_LICENSE.md`](DATA_AND_MODEL_LICENSE.md).

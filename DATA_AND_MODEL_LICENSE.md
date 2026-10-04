@@ -6,12 +6,14 @@ Project code is licensed under the [MIT License](LICENSE).
 
 ## TorNet
 
-TorNet data are not included in this repository. TorNet was created by MIT Lincoln Laboratory and is described in:
+TorNet data are not included in this repository or its releases.
 
-> Mark S. Veillette, James M. Kurdzo, Phillip M. Stepanian, John Y. N. Cho, Siddharth Samsi, and Joseph McDonald. *A Benchmark Dataset for Tornado Detection and Prediction using Full-Resolution Polarimetric Weather Radar Data.*
+The [TorNet software repository](https://github.com/mit-ll/tornet) is MIT-licensed. Its yearly dataset files are published through linked Zenodo records. Those records contain Distribution Statement A and MIT copyright and DFARS notices, but their License fields do not name a standard dataset license. This project does not redistribute the dataset.
 
-The [TorNet software repository](https://github.com/mit-ll/tornet) is MIT-licensed. The Zenodo dataset record marks the data as approved for public release but names no standard dataset license in its Rights field. The project MIT License does not apply to TorNet data.
+TorNet is described in:
+
+> Veillette, M. S., J. M. Kurdzo, P. M. Stepanian, J. Y. N. Cho, T. Reis, S. Samsi, J. McDonald, and N. Chisler, 2025: A Benchmark Dataset for Tornado Detection and Prediction Using Full-Resolution Polarimetric Weather Radar Data. *Artificial Intelligence for the Earth Systems*, **4**, e240006. https://doi.org/10.1175/AIES-D-24-0006.1
 
 ## V4 checkpoint
 
-The V4 checkpoint is private and is not covered by the project MIT License.
+The V4 checkpoint is not included in this repository or its public release.

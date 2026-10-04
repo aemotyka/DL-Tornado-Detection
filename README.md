@@ -86,6 +86,6 @@ See [`notebooks/README.md`](notebooks/README.md) for the notebook index.
 
 ## Data, code, and weights
 
-TorNet was created by Mark S. Veillette, James M. Kurdzo, Phillip M. Stepanian, John Y. N. Cho, Siddharth Samsi, and Joseph McDonald. See [*A Benchmark Dataset for Tornado Detection and Prediction using Full-Resolution Polarimetric Weather Radar Data*](https://arxiv.org/abs/2401.16437).
+See Veillette et al., [*A Benchmark Dataset for Tornado Detection and Prediction Using Full-Resolution Polarimetric Weather Radar Data*](https://doi.org/10.1175/AIES-D-24-0006.1).
 
 TorNet data and the V4 checkpoint are not included. Project code is MIT-licensed. See [`DATA_AND_MODEL_LICENSE.md`](DATA_AND_MODEL_LICENSE.md).
