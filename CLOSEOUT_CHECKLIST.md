@@ -75,7 +75,7 @@ Final test results:
 - [x] Add a GitHub Actions workflow.
 - [x] Test Python 3.11 and 3.12.
 - [x] Compile the package, run tests, and build the wheel in CI.
-- [ ] Confirm the first GitHub Actions run passes.
+- [x] Confirm the first GitHub Actions run passes.
 
 The workflow must not download TorNet, access Drive, train a model, or evaluate the official test split.
 

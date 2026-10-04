@@ -394,7 +394,6 @@ def load_canonical_frame_index(
     frame_index = pd.concat(
         annual_frames,
         ignore_index=True,
-        copy=False,
     )
 
     frame_index = frame_index.sort_values(
