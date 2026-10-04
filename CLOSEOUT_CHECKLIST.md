@@ -66,7 +66,7 @@ Final test results:
 - [x] Keep TorNet data out of the repository and release files.
 - [x] State that this project's MIT license does not cover TorNet.
 - [x] Record that the Zenodo dataset entry has no named standard license in its Rights field.
-- [x] Keep the V4 checkpoint private rather than publicly redistributing it.
+- [x] Keep the V4 checkpoint private.
 - [x] Keep the private checkpoint and research artifacts in Drive.
 - [x] Remove the old course-submission files; no third-party course material is distributed.
 
@@ -77,11 +77,9 @@ Final test results:
 - [x] Compile the package, run tests, and build the wheel in CI.
 - [x] Confirm the first GitHub Actions run passes.
 
-The workflow must not download TorNet, access Drive, train a model, or evaluate the official test split.
+- [x] Keep TorNet, Drive access, training, and official-test evaluation out of CI.
 
 ## Private archive bundle
-
-Wait until the documentation, license, and CI checks are settled.
 
 - [ ] Create `tornet-detection-v1.0.0-private.tar.gz` for private archival storage.
 - [ ] Include:
@@ -108,8 +106,6 @@ tornet-detection-v1.0.0/
 - [ ] Store the archive privately in Drive.
 
 ## Public release
-
-Wait until the private archive has passed clean-install testing.
 
 - [ ] Review the repository for secrets, machine-specific paths, and generated files.
 - [ ] Install the final wheel in a clean environment.

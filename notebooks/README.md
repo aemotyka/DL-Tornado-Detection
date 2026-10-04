@@ -6,8 +6,6 @@ The shortest path to the final result is:
 00 → 01 → 02 → 03 → 16 → 27 → 28 → 29 → 30
 ```
 
-The other notebooks show earlier baselines, performance tests, and model versions that were later replaced.
-
 ## Data setup
 
 | Notebook | Use |

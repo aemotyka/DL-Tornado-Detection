@@ -1,9 +1,5 @@
 # V4 Model Notes
 
-## What it is
-
-V4 is the final model from this project. It assigns a tornado score to each of the four frames in a TorNet file.
-
 | Field | Value |
 |---|---|
 | Package | `tornet-detection==1.0.0` |
@@ -15,8 +11,6 @@ V4 is the final model from this project. It assigns a tornado score to each of t
 | Spatial pooling | Highest-scoring 5% of cells |
 | Decision threshold | `0.9532915353775024` |
 
-The bidirectional ConvGRU sees the complete four-frame sequence. It cannot make a causal, live prediction.
-
 ## Data split
 
 | Split | Frames | Positive | Negative |
@@ -24,7 +18,7 @@ The bidirectional ConvGRU sees the complete four-frame sequence. It cannot make 
 | Official train | 686,564 | 22,430 | 664,134 |
 | Official test | 125,868 | 3,909 | 121,959 |
 
-The validation split came only from the official training data. Event groups do not cross between training and validation. The validation fraction was 20%, with split seed `20260913` and training seed `20260928`.
+Validation uses 20% of the official training split. Event groups do not cross between training and validation. Split seed: `20260913`. Training seed: `20260928`.
 
 ## Results
 
@@ -43,7 +37,7 @@ At the selected threshold:
 |---:|---:|---:|---:|
 | 2,002 | 1,907 | 1,682 | 120,277 |
 
-The sigmoid scores are not calibrated probabilities. A score of `0.95` does not mean a 95% chance of a tornado.
+Frame scores are uncalibrated sigmoid outputs.
 
 ### Test results by year
 
@@ -60,23 +54,17 @@ The sigmoid scores are not calibrated probabilities. A score of `0.95` does not 
 | 2021 | 0.3603 | 0.3770 | 0.9199 |
 | 2022 | 0.4602 | 0.4840 | 0.9176 |
 
-The large year-to-year spread matters. The aggregate score does not show uniform performance across storms, years, or radar sites.
-
 ## Test-set use
 
-The test split was run after V1 and again after the V4 model and threshold had been selected from validation data. V5 performed worse on validation and was not tested. The project stops with the V4 result.
+The test split was run after V1 and after V4 selection. V5 was rejected on validation results and was not run on the test split.
 
-## Reasonable uses
+## Limitations
 
-- Reproducing the reported TorNet experiment
-- Comparing temporal or sweep-aware radar models
-- Inspecting frame-level likelihood maps
-- Testing the packaged inference code with compatible TorNet files
-
-Do not use it to issue warnings or make safety decisions. The model uses future frames, misses roughly half of the positive test frames, and has not been tested in live radar operations.
+- Bidirectional inference requires all four frames.
+- Test recall at the selected threshold is `0.5122`.
+- Year-level test PR-AUC ranges from `0.3180` to `0.7683`.
+- Frame scores are not calibrated probabilities.
 
 ## Data and weights
 
-TorNet is described in [Veillette et al., *A Benchmark Dataset for Tornado Detection and Prediction using Full-Resolution Polarimetric Weather Radar Data*](https://arxiv.org/abs/2401.16437). No TorNet data are included here.
-
-The V4 checkpoint is not publicly distributed. The repository's MIT license applies to this project's code, not to TorNet or the private checkpoint. See [`DATA_AND_MODEL_LICENSE.md`](DATA_AND_MODEL_LICENSE.md).
+TorNet data and the V4 checkpoint are not included. See [Veillette et al.](https://arxiv.org/abs/2401.16437) and [`DATA_AND_MODEL_LICENSE.md`](DATA_AND_MODEL_LICENSE.md).
